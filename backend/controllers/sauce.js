@@ -1,16 +1,23 @@
 const Sauce = require("../models/Sauce");
 const fs = require("fs");
+const { findOne } = require("../models/Sauce");
 
 exports.createSauce = (req, res, next) => {
-    const sauceObject = JSON.parse(req.body.Sauce);
+    const sauceObject = JSON.parse(req.body.sauce);
     delete sauceObject._id;
     delete sauceObject._userId;
+    const title = sauceObject.name;
+    delete sauceObject.name;
+    console.log(sauceObject)
     const sauce = new Sauce({
     ...sauceObject,
+    title: title,
     userId: req.auth.userId,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
         req.file.filename
     }`,
+    usersLiked:[],
+    usersDisliked:[],
     });
 
     sauce
@@ -24,7 +31,7 @@ exports.createSauce = (req, res, next) => {
 };
 
 exports.getOneSauce = (req, res, next) => {
-    Sauce.findOneSauce({
+    Sauce.findOne({
     _id: req.params.id,
     })
     .then((sauce) => {
@@ -46,9 +53,9 @@ exports.modifySauce = (req, res, next) => {
         }`,
         }
     : { ...req.body };
-  //je supprime le userId venant de la requête pour mesure de sécurité
+    //je supprime le userId venant de la requête pour mesure de sécurité
     delete sauceObject._userId;
-    Sauce.findOneSauce({ _id: req.params.id })
+    Sauce.findOne({ _id: req.params.id })
     .then((sauce) => {
         if (sauce.userId != req.auth.userId) {
         res.status(401).json({ message: "Not authorized" });
@@ -62,13 +69,12 @@ exports.modifySauce = (req, res, next) => {
         }
     })
     .catch((error) => {
-        console.log("tutu");
-      //res.status(400).json({ error });
+        res.status(400).json({ error });
     });
 };
 
 exports.deleteSauce = (req, res, next) => {
-    Sauce.findOneSauce({ _id: req.params.id })
+    Sauce.findOne({ _id: req.params.id })
     .then((sauce) => {
         if (sauce.userId != req.auth.userId) {
         res.status(401).json({ message: "Not authorized" });
@@ -97,4 +103,37 @@ exports.getAllSauce = (req, res, next) => {
             error: error,
             });
         });
+};
+
+exports.like = (req, res, next) => {
+    const like = req.body.like;
+    const userId = req.body.userId;
+    Sauce.findOne({ _id: req.params.id })
+        .then((sauce) =>{ {
+            if (like === 0) {
+                let indexLike = sauce.usersLiked.findIndex(item => item === userId)
+                if(indexLike > -1){
+                    sauce.usersLiked.splice(indexLike, 1)
+                }
+                let indexDislike = sauce.usersDisliked.findIndex(item => item === userId)
+                if(indexDislike > -1){
+                    sauce.usersDisliked.splice(indexDislike, 1)
+                }
+            } else if (like === 1) {
+                let set = new Set(sauce.usersLiked);
+                set.add(userId);
+                sauce.usersLiked = [...set.values()]
+            } else if (like === -1) {
+                let set = new Set(sauce.usersDisliked);
+                set.add(userId);
+                sauce.usersDisliked = [...set.values()]
+            }
+            sauce.save()
+            .then(() => {
+                res.status(201).json({ message: "Objet enregistré !" });
+            })
+            .catch((error) => {
+                res.status(400).json({ error });
+            });
+        }})
 };
