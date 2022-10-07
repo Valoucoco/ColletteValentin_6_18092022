@@ -1,13 +1,12 @@
 const jwt = require('jsonwebtoken');
 const dotEnv = require('dotenv').config();
 
-console.log("coucou");
-console.log("le mot de passe est", `${process.env.secretKey}`);
+console.log(process.env.decodedTokenTwo);
 
 module.exports = (req, res, next) => {
     try {
         const token = req.headers.authorization.split(' ')[1];
-        const decodedToken = process.env.decodedToken;
+        const decodedToken = jwt.verify(token, process.env.decodedTokenTwo);
         const userId = decodedToken.userId;
         req.auth = {
             userId: userId
