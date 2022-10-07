@@ -5,8 +5,10 @@ const sauceRoutes = require('./routes/sauce');
 const userRoutes = require('./routes/user');
 const path = require('path');
 const cors = require('cors');
+const dotEnv = require('dotenv').config();
 
-mongoose.connect('mongodb+srv://Valoucoco:MDPtest1@cluster0.m4cmvp0.mongodb.net/?retryWrites=true&w=majority',
+
+mongoose.connect(process.env.secretKey,
     { useNewUrlParser: true,
     useUnifiedTopology: true })
         .then(() => console.log('Connexion à MongoDB réussie !'))
@@ -22,4 +24,4 @@ app.use('/api/sauces', sauceRoutes);
 app.use('/api/auth', userRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-module.exports = app;
+module.exports = app; 

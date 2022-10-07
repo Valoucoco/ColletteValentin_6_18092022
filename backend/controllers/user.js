@@ -2,8 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const { findOne } = require("../models/User");
 const User = require("../models/User");
-
-const user = require("../models/User");
+const dotEnv = require("dotenv").config();
 
 exports.signup = (req, res, next) => {
     User.findOne({ email: req.body.email })
