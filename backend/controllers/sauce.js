@@ -12,6 +12,8 @@ exports.createSauce = (req, res, next) => {
         userId: req.auth.userId,
         likes: 0,
         dislikes: 0,
+        usersDisliked: [],
+        usersLiked: [],
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
     });
     sauce.save()
@@ -37,7 +39,6 @@ exports.modifySauce = (req, res, next) => {
                 res.status(401).json({ message : 'Not authorized'});
                 return
             }
-            console.log(sauceObject.imageUrl)
             if (sauceObject.imageUrl) {
                 const filename = sauce.imageUrl.split("/images/")[1];
                 try {fs.unlinkSync(`./images/${filename}`)}
@@ -89,38 +90,44 @@ exports.getAllSauce = (req, res, next) => {
 
 exports.like = (req, res, next) => {
     const like = req.body.like;
-    
     const userId = req.body.userId;
+    
     Sauce.findOne({ _id: req.params.id })
-        .then((sauce) =>{ {
-            //si le like est égal à zéro
-            if (like === 0) {    
-                let indexLike = sauce.usersLiked.findIndex(item => item === userId)
-                if(indexLike > -1){
-                    sauce.usersLiked.splice(indexLike, 1)
-                }
-                let indexDislike = sauce.usersDisliked.findIndex(item => item === userId)
-                if(indexDislike > -1){
-                    sauce.usersDisliked.splice(indexDislike, 1)
-                }
-            //si le like est égal à 1 (liked)
-            } else if (like === 1) {
-                let set = new Set(sauce.usersLiked);
-                set.add(userId);
-                sauce.usersLiked = [...set.values()]
-            //si le like est égal à -1 (disliked)
-            } else if (like === -1) {
-                let set = new Set(sauce.usersDisliked);
-                set.add(userId);
-                sauce.usersDisliked = [...set.values()]
+        .then(sauce => {
+            const likeType = req.body.like;
+            const userId = req.body.userId;
+            switch (likeType) {
+                // Like
+                case 1: 
+                    if (!sauce.usersLiked.includes(userId)) {
+                        sauce.usersLiked.push(userId);
+                        ++sauce.likes;
+                    }
+                    break;
+                // Annulation
+                case 0:
+                    if (sauce.usersDisliked.includes(userId)) {
+                        sauce.usersDisliked.splice(sauce.usersDisliked.indexOf(userId), 1);
+                        --sauce.dislikes;
+                    } else if (sauce.usersLiked.includes(userId)) {
+                        sauce.usersLiked.splice(sauce.usersLiked.indexOf(userId), 1);
+                        --sauce.likes;
+                    }
+                    break;
+                // Dislike
+                case -1:
+                    if (!sauce.usersDisliked.includes(userId)) {
+                        sauce.usersDisliked.push(userId);
+                        ++sauce.dislikes;
+                    }
+                    break;
+                default:
+                    res.status(401).json({ message: "La valeur de like est fausse" })
+                    break;
             }
             sauce.save()
-            .then(() => {
-            console.log(sauce)
-                res.status(201).json({ message: "Objet enregistré !" });
-            })
-            .catch((error) => {
-                res.status(400).json({ error });
-            });
-        }})
+            .then(() => { res.status(200).json({message: 'Avis enregistré !'})})
+            .catch(error => { res.status(400).json( { error })})
+        })
+    .catch(error => res.status(404).json({ error }));
 };
