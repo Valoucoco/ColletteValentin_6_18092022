@@ -89,13 +89,11 @@ exports.getAllSauce = (req, res, next) => {
 };
 
 exports.like = (req, res, next) => {
-    const like = req.body.like;
-    const userId = req.body.userId;
     
     Sauce.findOne({ _id: req.params.id })
         .then(sauce => {
             const likeType = req.body.like;
-            const userId = req.body.userId;
+            const userId = req.auth.userId;
             switch (likeType) {
                 // Like
                 case 1: 
